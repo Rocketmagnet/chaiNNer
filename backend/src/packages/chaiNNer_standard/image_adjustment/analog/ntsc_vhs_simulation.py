@@ -46,6 +46,10 @@ import time
           BoolInput("Emulating VHS",                default=True ).with_id(13),
         SliderInput("Video chroma loss",            minimum=0, maximum=50000, default=10),
           BoolInput("Ringing",                      default=True ).with_id(15),
+        if_group(Condition.bool(15, True))
+        (
+            SliderInput("Ringing power",            minimum=2, maximum=7, default= 4)
+        )
     ],
     outputs=[
         ImageOutput(
@@ -73,6 +77,7 @@ def ntsc_vhs_simulation_node( img                             : np.ndarray,
                               emulating_vhs                   : bool,
                               video_chroma_loss               : int,
                               ringing                         : bool,
+                              ringing_power                   : int,
                             ) -> np.ndarray:
 
     #my_ntsc = ntsc.random_ntsc(int(time.time()))
@@ -97,6 +102,7 @@ def ntsc_vhs_simulation_node( img                             : np.ndarray,
     my_ntsc._video_chroma_loss                  = video_chroma_loss
     my_ntsc._composite_out_chroma_lowpass       = composite_out_chroma_lowpass
     my_ntsc._ringing                            = ringing
+    my_ntsc._ringing_power                      = ringing_power
 
     height, width, depth = img.shape
     new_height = 600
@@ -107,12 +113,13 @@ def ntsc_vhs_simulation_node( img                             : np.ndarray,
     resized_src_img = cv2.resize(img, new_size, interpolation=cv2.INTER_AREA)
     resized_src_img *= 255.0
 
-    dst_img = np.zeros_like(resized_src_img)
+    dst_img_0 = np.zeros_like(resized_src_img)
+    dst_img_1 = np.zeros_like(resized_src_img)
 
-    logger.info("resized_src_img = " + str(resized_src_img.shape))
-    logger.info("dst_img         = " + str(        dst_img.shape))
+    my_ntsc.composite_layer(dst_img_0, resized_src_img, field=0, fieldno=0)
+    my_ntsc.composite_layer(dst_img_1, resized_src_img, field=1, fieldno=1)
 
-    my_ntsc.composite_layer(dst_img, resized_src_img, 1, 2)
-    dst_img *= (1.0/255.0)
+    dst_img_0 += dst_img_1
+    dst_img_0 *= (1.0/255.0)
 
-    return dst_img
+    return dst_img_0
