@@ -39,14 +39,13 @@ import time
         SliderInput("Video noise",                  minimum=0, maximum=4200, default= 2),
 
           BoolInput("VHS head switching",           default=False).with_id( 9),
-          BoolInput("Nocolor subcarrier",           default=False).with_id(10),
 
         SliderInput("Chroma noise",                 minimum=0, maximum=16384, default= 2),
         SliderInput("Chroma phase_noise",           minimum=0, maximum=50, default= 2),
-          BoolInput("Emulating VHS",                default=True ).with_id(13),
+          BoolInput("Emulating VHS",                default=True ).with_id(12),
         SliderInput("Video chroma loss",            minimum=0, maximum=50000, default=10),
-          BoolInput("Ringing",                      default=True ).with_id(15),
-        if_group(Condition.bool(15, True))
+          BoolInput("Ringing",                      default=True ).with_id(14),
+        if_group(Condition.bool(14, True))
         (
             SliderInput("Ringing power",            minimum=2, maximum=7, default= 4)
         )
@@ -71,7 +70,6 @@ def ntsc_vhs_simulation_node( img                             : np.ndarray,
                               composite_preemphasis           : int,
                               video_noise                     : int,
                               vhs_head_switching              : bool,
-                              nocolor_subcarrier              : bool,
                               video_chroma_noise              : int,
                               video_chroma_phase_noise        : int,
                               emulating_vhs                   : bool,
@@ -100,7 +98,6 @@ def ntsc_vhs_simulation_node( img                             : np.ndarray,
     my_ntsc._video_chroma_phase_noise           = video_chroma_phase_noise
     my_ntsc._emulating_vhs                      = emulating_vhs
     my_ntsc._video_chroma_loss                  = video_chroma_loss
-    my_ntsc._composite_out_chroma_lowpass       = composite_out_chroma_lowpass
     my_ntsc._ringing                            = ringing
     my_ntsc._ringing_power                      = ringing_power
 
@@ -115,11 +112,15 @@ def ntsc_vhs_simulation_node( img                             : np.ndarray,
 
     dst_img_0 = np.zeros_like(resized_src_img)
     dst_img_1 = np.zeros_like(resized_src_img)
-
     my_ntsc.composite_layer(dst_img_0, resized_src_img, field=0, fieldno=0)
     my_ntsc.composite_layer(dst_img_1, resized_src_img, field=1, fieldno=1)
-
     dst_img_0 += dst_img_1
     dst_img_0 *= (1.0/255.0)
+
+
+    #_ = my_ntsc.composite_layer(dst_img_0, resized_src_img, field=0, fieldno=1)
+    #ntsc_out_image = cv2.convertScaleAbs(_)
+    #ntsc_out_image[1:-1:2] = ntsc_out_image[0:-2:2] / 2 + ntsc_out_image[2::2] / 2
+    #ntsc_out_image *= (1.0/255.0)
 
     return dst_img_0
